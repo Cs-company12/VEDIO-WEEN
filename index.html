@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Weyneeye</title>
+<style>
+  :root { --bg:#0f1115; --panel:#1a1d24; --line:#2c313c; --text:#eef0f4; --muted:#9aa3b2; --accent:#f5b301; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
+  h1 { font-size:22px; margin:0 0 16px; }
+  h2 { font-size:16px; margin:0 0 8px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  input[type=text] { flex:1; min-width:200px; padding:9px 10px; border-radius:8px; border:1px solid var(--line); background:#0f1115; color:var(--text); }
+  button, .btn { padding:9px 14px; border-radius:8px; border:1px solid var(--line); background:#262b36; color:var(--text); font:600 14px system-ui,sans-serif; cursor:pointer; text-decoration:none; display:inline-block; }
+  button:hover, .btn:hover { border-color:var(--accent); }
+  .primary { background:var(--accent); color:#111; border-color:var(--accent); }
+  #stage { position:relative; width:100%; aspect-ratio:16/9; background:#000; overflow:hidden; border-radius:10px; margin-bottom:10px; }
+  #stage:fullscreen { border-radius:0; aspect-ratio:auto; width:100vw; height:100vh; }
+  #v { width:100%; height:100%; object-fit:contain; transform-origin:center center; transition:transform .15s; }
+  #hud { position:absolute; top:10px; right:10px; z-index:5; display:flex; gap:6px; opacity:.9; }
+  #hud button { background:rgba(0,0,0,.7); border-color:rgba(255,255,255,.4); }
+  #empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); pointer-events:none; }
+  p { color:var(--muted); font-size:14px; line-height:1.5; margin:6px 0; }
+  kbd { background:#262b36; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12px; color:var(--text); }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔍 Video Weyneeye</h1>
+
+  <div class="panel">
+    <div class="row" style="margin-bottom:10px">
+      <input type="file" id="file" accept="video/*" hidden>
+      <button class="primary" onclick="file.click()">📂 Fur video computer-ka</button>
+      <input type="text" id="url" placeholder="ama geli link toos ah (.mp4 / .webm)">
+      <button onclick="loadUrl()">Fur link</button>
+    </div>
+
+    <div id="stage">
+      <video id="v" controls></video>
+      <div id="empty">Video dooro si aad u bilowdo</div>
+      <div id="hud">
+        <button onclick="step(-1)" title="Yaree">−</button>
+        <button id="lvl" onclick="reset()" title="Caadi ku celi">100%</button>
+        <button onclick="step(1)" title="Weynee">+</button>
+        <button onclick="full()" title="Shaashad buuxda">⛶</button>
+      </div>
+    </div>
+
+    <p>Keyboard: <kbd>+</kbd> weynee · <kbd>-</kbd> yaree · <kbd>0</kbd> caadi · <kbd>F</kbd> shaashad buuxda · jiid video-ga si aad u dhaqaajiso marka uu weyn yahay.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Bogagga kale (button Weynee)</h2>
+    <p>Jiid button-kan oo dhig <b>bookmarks bar</b>-ka browser-kaaga. Marka aad video ka daawanayso bog kale, guji bookmark-ga — button <b>🔍 Weynee</b> ayaa ka soo baxaya bogga.</p>
+    <a class="btn primary" id="bm" href="#">🔍 Weynee Video</a>
+    <p>Ogow: haddii video-gu ku jiro iframe ka yimid site kale, bookmark-gu ma gaari karo — markaas isticmaal extension-ka (manifest.json + content.js).</p>
+  </div>
+</main>
+
+<script>
+  const v = document.getElementById("v"), stage = document.getElementById("stage");
+  const lvl = document.getElementById("lvl"), empty = document.getElementById("empty");
+  let zoom = 1, tx = 0, ty = 0;
+
+  function render() {
+    if (zoom === 1) { tx = 0; ty = 0; }
+    v.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + zoom + ")";
+    lvl.textContent = Math.round(zoom * 100) + "%";
+  }
+  function step(d) { zoom = Math.min(4, Math.max(1, +(zoom + d * 0.1).toFixed(2))); render(); }
+  function reset() { zoom = 1; render(); }
+  function full() { document.fullscreenElement ? document.exitFullscreen() : stage.requestFullscreen(); }
+
+  function play(src) { v.src = src; empty.style.display = "none"; reset(); v.play().catch(() => {}); }
+  document.getElementById("file").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) play(URL.createObjectURL(f));
+  });
+  function loadUrl() {
+    const u = document.getElementById("url").value.trim();
+    if (u) play(u);
+  }
+  v.addEventListener("error", () => { if (v.src) { empty.textContent = "Video-gan lama furi karo"; empty.style.display = "flex"; } });
+
+  // Jiid si loo dhaqaajiyo marka la weyneeyay
+  let drag = null;
+  stage.addEventListener("pointerdown", (e) => {
+    if (zoom === 1 || e.target.closest("#hud")) return;
+    drag = { x: e.clientX - tx, y: e.clientY - ty };
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    tx = e.clientX - drag.x; ty = e.clientY - drag.y; render();
+  });
+  window.addEventListener("pointerup", () => { drag = null; });
+
+  stage.addEventListener("wheel", (e) => { e.preventDefault(); step(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === "+" || e.key === "=") step(1);
+    else if (e.key === "-") step(-1);
+    else if (e.key === "0") reset();
+    else if (e.key.toLowerCase() === "f") full();
+  });
+
+  // Bookmarklet: wuxuu button Weynee ku darayaa bogga hadda furan
+  const code = function () {
+    var L = [1, 1.15, 1.33, 1.5, 1.75, 2], i = 0, b = document.getElementById("__weynee");
+    if (b) { b.remove(); document.querySelectorAll("video").forEach(function (x) { x.style.transform = ""; }); return; }
+    if (!document.querySelector("video")) { alert("Video laguma helin boggan (waxaa laga yaabaa inuu ku jiro iframe)."); return; }
+    b = document.createElement("button");
+    b.id = "__weynee";
+    b.textContent = "🔍 Weynee";
+    b.style.cssText = "position:fixed;top:12px;right:12px;z-index:2147483647;padding:8px 14px;font:600 14px sans-serif;color:#fff;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.5);border-radius:8px;cursor:pointer";
+    function a() {
+      document.querySelectorAll("video").forEach(function (x) {
+        x.style.transformOrigin = "center center";
+        x.style.transform = L[i] === 1 ? "" : "scale(" + L[i] + ")";
+      });
+      b.textContent = L[i] === 1 ? "🔍 Weynee" : "🔍 " + Math.round(L[i] * 100) + "%";
+    }
+    b.onclick = function (e) { e.stopPropagation(); i = (i + 1) % L.length; a(); };
+    b.oncontextmenu = function (e) { e.preventDefault(); i = (i - 1 + L.length) % L.length; a(); };
+    function h() { (document.fullscreenElement || document.documentElement).appendChild(b); }
+    document.addEventListener("fullscreenchange", h);
+    h();
+  };
+  const bm = document.getElementById("bm");
+  bm.href = "javascript:" + encodeURIComponent("(" + code.toString() + ")();");
+  bm.addEventListener("click", (e) => { e.preventDefault(); alert("Ha gujin halkan — jiid oo dhig bookmarks bar-ka."); });
+</script>
+</body>
+</html>
