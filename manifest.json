@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Video Weyneeye + Ad Block",
+  "version": "3.0",
+  "description": "Weynee video-ga socda, xir xayeysiisyada iyo popup-yada bog kasta.",
+  "permissions": ["storage", "declarativeNetRequest", "webNavigation", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Video Weyneeye + Ad Block", "default_popup": "popup.html" },
+  "declarative_net_request": {
+    "rule_resources": [{ "id": "ads", "enabled": true, "path": "rules.json" }]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["guard.js"],
+      "world": "MAIN",
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["adblock.js"],
+      "css": ["hide.css"],
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true,
+      "run_at": "document_idle"
+    }
+  ]
+}
